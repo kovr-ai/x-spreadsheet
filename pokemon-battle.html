@@ -18,7 +18,9 @@
     font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
     background:radial-gradient(circle at 50% 0%,#1d2b53 0%,#0c0f24 70%,#05060f 100%);
     color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;
+    display:flex;flex-direction:column;
   }
+  header,#turnbar,.controls{flex:0 0 auto;}
 
   /* ---------- Title bar ---------- */
   header{
@@ -36,8 +38,8 @@
   .arena{
     display:flex;align-items:stretch;justify-content:center;
     gap:clamp(10px,2vw,40px);
-    height:calc(100vh - 9vh);
-    padding:0 clamp(10px,2vw,40px) 2vh;
+    flex:1 1 auto;min-height:0;
+    padding:0 clamp(10px,2vw,40px) 1vh;
   }
   .panel{
     flex:1 1 0;max-width:46vw;
@@ -48,8 +50,10 @@
     border:4px solid rgba(255,255,255,.15);
     box-shadow:0 10px 40px rgba(0,0,0,.5),inset 0 0 60px rgba(255,255,255,.04);
     position:relative;transition:transform .15s,box-shadow .3s,border-color .3s;
-    min-width:0;
+    min-width:0;min-height:0;overflow:hidden;
   }
+  .battle-view{min-height:0;}
+  .sprite{min-height:0;}
   .panel.left{border-top-left-radius:60px;}
   .panel.right{border-top-right-radius:60px;}
   .panel.shake{animation:shake .35s;}
@@ -123,6 +127,17 @@
   }
   .panel.battling.fainted .ball{transform:rotate(20deg) translateY(10px);}
 
+  /* selected Pokémon artwork (shown above the HP bar) */
+  .sprite{
+    display:none;width:auto;height:auto;max-width:92%;max-height:34vh;
+    margin:1vh auto .5vh;object-fit:contain;
+    filter:drop-shadow(0 10px 16px rgba(0,0,0,.55));
+    animation:spritein .4s ease-out;
+  }
+  @keyframes spritein{from{transform:scale(.6) translateY(10px);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .panel.battling.fainted .sprite{filter:grayscale(1) drop-shadow(0 10px 16px rgba(0,0,0,.5));transform:rotate(8deg) translateY(8px);}
+  .panel.active .sprite{filter:drop-shadow(0 0 18px rgba(255,222,0,.7)) drop-shadow(0 10px 16px rgba(0,0,0,.5));}
+
   .hp-wrap{width:100%;margin-top:auto;}
   .hp-top{display:flex;justify-content:space-between;align-items:baseline;
     font-size:clamp(14px,2vw,26px);font-weight:bold;margin-bottom:4px;}
@@ -141,36 +156,10 @@
   .hp-fill.low{background:linear-gradient(#ff6b6b,#c81f1f);animation:pulse 1s infinite;}
   @keyframes pulse{50%{opacity:.6;}}
 
-  /* ---------- Damage controls ---------- */
-  .dmg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:1.2vh;width:100%;}
-  .dmg button{
-    flex:1 1 0;min-width:60px;border:none;border-radius:14px;cursor:pointer;
-    font-family:inherit;font-weight:900;font-size:clamp(16px,2.4vw,30px);
-    padding:clamp(8px,1.6vh,16px) 0;color:#fff;
-    box-shadow:0 5px 0 rgba(0,0,0,.35);transition:transform .07s,box-shadow .07s,filter .1s;
-  }
-  .dmg button:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35);}
-  .dmg .minus{background:linear-gradient(#ff5d5d,#d61f1f);}
-  .dmg .plus{background:linear-gradient(#5db0ff,#1f6fd6);}
-  .dmg .heal{background:linear-gradient(#5dd47a,#1f9d45);}
-  .dmg button:hover{filter:brightness(1.1);}
-  .custom-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;width:100%;}
-  .custom-row input{
-    width:70px;text-align:center;border:none;border-radius:10px;
-    padding:8px;font-size:clamp(15px,2vw,24px);font-weight:bold;
-    background:rgba(0,0,0,.35);color:#fff;
-  }
-  .custom-row button{
-    border:none;border-radius:10px;cursor:pointer;color:#fff;font-weight:bold;
-    padding:8px 16px;font-size:clamp(14px,1.8vw,22px);
-    background:linear-gradient(#ff7b3d,#d6541f);font-family:inherit;
-  }
-
   /* ---------- Big buttons ---------- */
   .controls{
-    position:fixed;bottom:0;left:0;right:0;
-    display:flex;gap:14px;justify-content:center;padding:1.2vh;
-    background:linear-gradient(transparent,rgba(0,0,0,.55));
+    display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;padding:1.2vh;
+    background:linear-gradient(transparent,rgba(0,0,0,.45));
   }
   .bigbtn{
     border:none;border-radius:16px;cursor:pointer;font-family:inherit;
@@ -193,6 +182,66 @@
   #musicSelect:focus{outline-color:#ffde00;}
   #musicSelect option{color:#000;}
   #musicVol{width:clamp(70px,8vw,120px);cursor:pointer;accent-color:#a45bd6;}
+  #coinBtn{background:linear-gradient(#ffd24d,#e0a800);color:#3a2e00;font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
+  #luckBtn{background:linear-gradient(#5dd47a,#1f9d45);font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
+  #luckBtn.off{background:linear-gradient(#8a8aa0,#55556e);}
+
+  /* ---------- Turn banner ---------- */
+  #turnbar{
+    text-align:center;min-height:4.4vh;padding:.4vh 1vw;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #turnmsg{
+    font-size:clamp(15px,2.5vw,34px);font-weight:900;letter-spacing:1px;
+    color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);
+    padding:.4vh 2vw;border-radius:999px;background:rgba(255,255,255,.08);
+    transition:background .3s;max-width:96vw;
+  }
+  #turnmsg.p1{background:rgba(238,29,29,.4);box-shadow:0 0 22px rgba(238,29,29,.55);}
+  #turnmsg.p2{background:rgba(31,111,214,.4);box-shadow:0 0 22px rgba(31,111,214,.55);}
+  #turnmsg.flash{animation:msgflash .45s;}
+  @keyframes msgflash{0%{transform:scale(1);}45%{transform:scale(1.1);}100%{transform:scale(1);}}
+
+  /* ---------- Active / waiting panel ---------- */
+  .panel.active{border-color:#ffde00;box-shadow:0 0 40px rgba(255,222,0,.45),inset 0 0 60px rgba(255,255,255,.05);}
+  .panel.waiting .combat{opacity:.3;pointer-events:none;filter:grayscale(.6);}
+
+  /* ---------- Energy pips ---------- */
+  .energy{font-size:clamp(16px,2.4vw,30px);letter-spacing:4px;margin-top:1vh;min-height:1.4em;line-height:1;}
+
+  /* ---------- Combat row ---------- */
+  .combat{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;margin-top:.6vh;width:100%;}
+  .combat .dmgin{
+    width:clamp(72px,8vw,110px);text-align:center;border:none;border-radius:12px;font-family:inherit;font-weight:bold;
+    font-size:clamp(16px,2.2vw,26px);padding:clamp(8px,1.4vh,14px) 6px;background:rgba(0,0,0,.4);color:#fff;
+  }
+  .combat .costsel{
+    border:none;border-radius:12px;font-family:inherit;font-weight:bold;cursor:pointer;
+    font-size:clamp(13px,1.7vw,22px);padding:clamp(8px,1.4vh,14px) 6px;background:rgba(0,0,0,.4);color:#fff;
+  }
+  .combat .costsel option{color:#000;}
+  .combat button{
+    border:none;border-radius:14px;cursor:pointer;font-family:inherit;font-weight:900;color:#fff;
+    font-size:clamp(14px,1.9vw,24px);padding:clamp(8px,1.5vh,15px) clamp(12px,1.5vw,20px);
+    box-shadow:0 5px 0 rgba(0,0,0,.35);transition:transform .07s,box-shadow .07s,filter .1s;
+  }
+  .combat button:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35);}
+  .combat button:hover{filter:brightness(1.1);}
+  .combat .atkbtn{background:linear-gradient(#ff5d5d,#d61f1f);}
+  .combat .chargebtn{background:linear-gradient(#f7d02c,#e0a800);color:#3a2e00;}
+
+  /* ---------- Manual fix row ---------- */
+  .adjust{display:flex;gap:6px;justify-content:center;align-items:center;margin-top:.7vh;opacity:.75;}
+  .adjust span{font-size:clamp(10px,1.2vw,15px);text-transform:uppercase;letter-spacing:1px;opacity:.7;}
+  .adjust button{
+    border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-weight:bold;color:#fff;
+    font-size:clamp(12px,1.4vw,17px);padding:5px 11px;background:rgba(0,0,0,.4);
+  }
+  .adjust .heal{background:rgba(31,157,69,.7);}
+
+  /* ---------- Two-column setup field ---------- */
+  .field.two{display:flex;gap:10px;}
+  .field.two>div{flex:1;min-width:0;}
 
   /* ---------- Winner overlay ---------- */
   .overlay{
@@ -239,33 +288,45 @@
 
 <header><h1>⚡ POKÉMON BATTLE ARENA ⚡</h1></header>
 
+<div id="turnbar"><span id="turnmsg">Set up both Pokémon, then press ▶ Start Battle!</span></div>
+
 <div class="arena">
   <!-- LEFT -->
   <section class="panel left" id="panel1">
     <div class="setup-view">
       <div class="field"><label>Trainer Name</label><input id="trainer1" placeholder="Ash" /></div>
-      <div class="field"><label>Pokémon Name</label><input id="name1" placeholder="Pikachu" /></div>
+      <div class="field"><label>Pokémon (type to search)</label><input id="name1" list="dexlist" placeholder="Pikachu" autocomplete="off" /></div>
       <div class="field"><label>Type</label><select id="type1"></select></div>
       <div class="field"><label>Hit Points (HP)</label><input id="hp1" type="number" value="100" min="1" /></div>
+      <div class="field two">
+        <div><label>Weakness</label><select id="weak1"></select></div>
+        <div><label>Resistance</label><select id="resist1"></select></div>
+      </div>
     </div>
     <div class="battle-view">
       <div class="ball" id="ball1"></div>
+      <img class="sprite" id="sprite1" alt="" />
       <div class="trainer">Trainer: <b id="dTrainer1"></b></div>
       <div class="pokename" id="dName1"></div>
       <div class="typebadge" id="dType1"></div>
       <div class="hp-wrap">
         <div class="hp-top"><span class="hp-label">HP</span><span class="hp-num" id="hpNum1"></span></div>
         <div class="hp-bar"><div class="hp-fill" id="hpFill1"></div></div>
-        <div class="dmg">
-          <button class="minus" data-side="1" data-amt="1">-1</button>
-          <button class="minus" data-side="1" data-amt="5">-5</button>
-          <button class="minus" data-side="1" data-amt="10">-10</button>
-          <button class="minus" data-side="1" data-amt="20">-20</button>
+        <div class="energy" id="energy1"></div>
+        <div class="combat">
+          <input type="number" class="dmgin" id="atk1" placeholder="dmg" min="0" />
+          <select class="costsel" id="cost1" title="Energy symbols on the attack">
+            <option value="1">⚡ 1</option><option value="2">⚡ 2</option>
+            <option value="3">⚡ 3</option><option value="4">⚡ 4</option>
+          </select>
+          <button class="atkbtn" data-attack="1">⚔️ Attack</button>
+          <button class="chargebtn" data-charge="1">⚡ Charge</button>
         </div>
-        <div class="custom-row">
-          <button class="heal" data-side="1" data-heal="1" style="background:linear-gradient(#5dd47a,#1f9d45);border:none;border-radius:10px;color:#fff;font-weight:bold;padding:8px 14px;cursor:pointer;font-family:inherit;">+ Heal</button>
-          <input type="number" id="custom1" placeholder="#" min="1" />
-          <button data-side="1" data-custom="1">Hit!</button>
+        <div class="adjust">
+          <span>fix HP</span>
+          <button data-side="1" data-amt="10">−10</button>
+          <button data-side="1" data-amt="1">−1</button>
+          <button class="heal" data-side="1" data-heal="1">+10</button>
         </div>
       </div>
     </div>
@@ -277,28 +338,38 @@
   <section class="panel right" id="panel2">
     <div class="setup-view">
       <div class="field"><label>Trainer Name</label><input id="trainer2" placeholder="Misty" /></div>
-      <div class="field"><label>Pokémon Name</label><input id="name2" placeholder="Starmie" /></div>
+      <div class="field"><label>Pokémon (type to search)</label><input id="name2" list="dexlist" placeholder="Starmie" autocomplete="off" /></div>
       <div class="field"><label>Type</label><select id="type2"></select></div>
       <div class="field"><label>Hit Points (HP)</label><input id="hp2" type="number" value="100" min="1" /></div>
+      <div class="field two">
+        <div><label>Weakness</label><select id="weak2"></select></div>
+        <div><label>Resistance</label><select id="resist2"></select></div>
+      </div>
     </div>
     <div class="battle-view">
       <div class="ball" id="ball2"></div>
+      <img class="sprite" id="sprite2" alt="" />
       <div class="trainer">Trainer: <b id="dTrainer2"></b></div>
       <div class="pokename" id="dName2"></div>
       <div class="typebadge" id="dType2"></div>
       <div class="hp-wrap">
         <div class="hp-top"><span class="hp-label">HP</span><span class="hp-num" id="hpNum2"></span></div>
         <div class="hp-bar"><div class="hp-fill" id="hpFill2"></div></div>
-        <div class="dmg">
-          <button class="minus" data-side="2" data-amt="1">-1</button>
-          <button class="minus" data-side="2" data-amt="5">-5</button>
-          <button class="minus" data-side="2" data-amt="10">-10</button>
-          <button class="minus" data-side="2" data-amt="20">-20</button>
+        <div class="energy" id="energy2"></div>
+        <div class="combat">
+          <input type="number" class="dmgin" id="atk2" placeholder="dmg" min="0" />
+          <select class="costsel" id="cost2" title="Energy symbols on the attack">
+            <option value="1">⚡ 1</option><option value="2">⚡ 2</option>
+            <option value="3">⚡ 3</option><option value="4">⚡ 4</option>
+          </select>
+          <button class="atkbtn" data-attack="2">⚔️ Attack</button>
+          <button class="chargebtn" data-charge="2">⚡ Charge</button>
         </div>
-        <div class="custom-row">
-          <button class="heal" data-side="2" data-heal="1" style="background:linear-gradient(#5dd47a,#1f9d45);border:none;border-radius:10px;color:#fff;font-weight:bold;padding:8px 14px;cursor:pointer;font-family:inherit;">+ Heal</button>
-          <input type="number" id="custom2" placeholder="#" min="1" />
-          <button data-side="2" data-custom="1">Hit!</button>
+        <div class="adjust">
+          <span>fix HP</span>
+          <button data-side="2" data-amt="10">−10</button>
+          <button data-side="2" data-amt="1">−1</button>
+          <button class="heal" data-side="2" data-heal="1">+10</button>
         </div>
       </div>
     </div>
@@ -308,6 +379,8 @@
 <div class="controls">
   <button class="bigbtn" id="startBtn">▶ Start Battle</button>
   <button class="bigbtn" id="resetBtn">↻ New Battle</button>
+  <button class="bigbtn" id="coinBtn">🪙 Coin Flip</button>
+  <button class="bigbtn" id="luckBtn">🎲 Luck Dice: On</button>
   <button class="bigbtn" id="soundBtn">🔊 FX: On</button>
   <div class="music-controls">
     <button class="bigbtn" id="musicBtn">🎵 Music: On</button>
@@ -317,6 +390,7 @@
 </div>
 
 <audio id="bgm" loop></audio>
+<datalist id="dexlist"></datalist>
 
 <!-- WINNER OVERLAY -->
 <div class="overlay" id="overlay">
@@ -357,6 +431,57 @@ const MUSIC=/*__MUSIC_DATA__*/{
   sel.selectedIndex = i===0?1:2; // Fire vs Water default fun
 });
 
+// populate weakness & resistance dropdowns (with a "None" choice)
+["weak1","weak2","resist1","resist2"].forEach(id=>{
+  const sel=document.getElementById(id);
+  const none=document.createElement("option");none.value="";none.textContent="— None —";sel.appendChild(none);
+  TYPES.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=EMOJI[t]+" "+t;sel.appendChild(o);});
+});
+
+// ---- Pokédex picker: searchable name list + official artwork ----
+const DEX=new Map(); // lookup key (lowercase) -> National Dex id
+function titleCase(s){return s.split("-").map(w=>w?w[0].toUpperCase()+w.slice(1):w).join(" ");}
+function spriteURL(id){return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/"+id+".png";}
+function lookupDex(name){
+  const k=(name||"").trim().toLowerCase();
+  if(DEX.has(k))return DEX.get(k);
+  const dash=k.replace(/['’.]/g,"").replace(/\s+/g,"-"); // "Mr. Mime" -> "mr-mime"
+  return DEX.has(dash)?DEX.get(dash):null;
+}
+// Kanto dex (offline fallback so the list still works without internet)
+const GEN1=["Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran F","Nidorina","Nidoqueen","Nidoran M","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetchd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
+function addDexOption(label,id){
+  DEX.set(label.toLowerCase(),id);
+  const o=document.createElement("option");o.value=label;document.getElementById("dexlist").appendChild(o);
+}
+async function loadDex(){
+  try{
+    const r=await fetch("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0");
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    j.results.forEach(p=>{
+      const id=parseInt(p.url.split("/").filter(Boolean).pop(),10);
+      DEX.set(p.name,id); // raw api name e.g. "mr-mime"
+      addDexOption(titleCase(p.name),id);
+    });
+  }catch(e){
+    GEN1.forEach((nm,i)=>addDexOption(nm,i+1)); // offline: Kanto only
+  }
+}
+loadDex();
+function setSprite(s,name){
+  const img=document.getElementById("sprite"+s),ball=document.getElementById("ball"+s);
+  const id=lookupDex(name);
+  if(id){
+    img.onload=()=>{img.style.display="block";ball.style.display="none";};
+    img.onerror=()=>{img.style.display="none";ball.style.display="block";};
+    img.src=spriteURL(id);
+  }else{
+    img.onload=img.onerror=null;img.removeAttribute("src");
+    img.style.display="none";ball.style.display="block";
+  }
+}
+
 // populate music dropdown
 const musicSelect=document.getElementById("musicSelect");
 const bgm=document.getElementById("bgm");
@@ -396,11 +521,49 @@ document.getElementById("musicBtn").addEventListener("click",function(){
 function isBattling(){return document.getElementById("panel1").classList.contains("battling");}
 
 const state={
-  1:{max:100,cur:100,name:"",trainer:"",type:"Fire"},
-  2:{max:100,cur:100,name:"",trainer:"",type:"Water"},
-  over:false
+  1:{max:100,cur:100,name:"",trainer:"",type:"Fire",weak:"",resist:"",energy:1},
+  2:{max:100,cur:100,name:"",trainer:"",type:"Water",weak:"",resist:"",energy:1},
+  over:false,
+  turn:0  // whose turn it is (1 or 2); 0 = battle not started
 };
 let soundOn=true;
+let luckOn=true;     // luck dice on attacks
+const MAX_ENERGY=4;  // energy pip cap
+const START_ENERGY=1;// everyone starts with 1 (so 1-cost attacks fire immediately)
+
+const SIDE_COLOR={1:"#ee1d1d",2:"#1f6fd6"};
+
+// ---- turn banner ----
+const turnmsg=document.getElementById("turnmsg");
+function announce(html,cls){
+  turnmsg.innerHTML=html;
+  turnmsg.className="";
+  if(cls)turnmsg.classList.add(cls);
+  turnmsg.classList.remove("flash");void turnmsg.offsetWidth;turnmsg.classList.add("flash");
+}
+
+function renderEnergy(s){
+  const el=document.getElementById("energy"+s);
+  const e=state[s].energy;
+  let pips="";
+  for(let i=0;i<MAX_ENERGY;i++) pips+= i<e ? "⚡" : "·";
+  el.textContent=pips;
+  el.title=e+" energy";
+}
+
+function setTurn(s){
+  state.turn=s;
+  const other=s===1?2:1;
+  document.getElementById("panel"+s).classList.add("active");
+  document.getElementById("panel"+s).classList.remove("waiting");
+  document.getElementById("panel"+other).classList.remove("active");
+  document.getElementById("panel"+other).classList.add("waiting");
+  announce(EMOJI_TURN(s)+" <b>"+esc(state[s].trainer)+"</b>'s turn — Attack or Charge",
+           s===1?"p1":"p2");
+}
+function EMOJI_TURN(s){return s===1?"🔴":"🔵";}
+function switchTurn(){ if(!state.over) setTurn(state.turn===1?2:1); }
+function esc(t){return (t||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
 
 function cssColor(type){return getComputedStyle(document.documentElement).getPropertyValue(TYPE_VAR[type]).trim();}
 
@@ -409,9 +572,11 @@ function startBattle(){
     const trainer=document.getElementById("trainer"+s).value.trim()||("Trainer "+s);
     const name=document.getElementById("name"+s).value.trim()||("Pokémon "+s);
     const type=document.getElementById("type"+s).value;
+    const weak=document.getElementById("weak"+s).value;
+    const resist=document.getElementById("resist"+s).value;
     let hp=parseInt(document.getElementById("hp"+s).value,10);
     if(!hp||hp<1)hp=100;
-    state[s]={max:hp,cur:hp,name,trainer,type};
+    state[s]={max:hp,cur:hp,name,trainer,type,weak,resist,energy:START_ENERGY};
     // fill display
     document.getElementById("dTrainer"+s).textContent=trainer;
     document.getElementById("dName"+s).textContent=name;
@@ -424,7 +589,9 @@ function startBattle(){
     // tint ball top color toward type
     document.getElementById("ball"+s).style.background=
       `linear-gradient(${cssColor(type)} 0 49%,#222 49% 51%,#fff 51% 100%)`;
+    setSprite(s,name); // show the selected Pokémon's artwork above the HP bar
     updateHP(s);
+    renderEnergy(s);
   }
   state.over=false;
   document.getElementById("startBtn").style.display="none";
@@ -432,6 +599,11 @@ function startBattle(){
   beep([[523,.12],[659,.12],[784,.18]]); // ascending start jingle
   bgm.currentTime=0;
   playMusic(); // battle music begins
+  // opening coin flip decides who goes first
+  const first=Math.random()<0.5?1:2;
+  announce("🪙 Coin flip… <b>"+esc(state[first].trainer)+"</b> goes first!",first===1?"p1":"p2");
+  beep([[700,.06],[900,.06]]);
+  setTimeout(()=>setTurn(first),1200);
 }
 
 function updateHP(s){
@@ -458,11 +630,75 @@ function changeHP(s,delta){
   if(st.cur===0){faint(s);}
 }
 
+// ---- combat: charge & attack ----
+function lockThen(fn,delay){           // brief lock so the result is readable before the turn flips
+  state.acting=true;
+  setTimeout(()=>{state.acting=false;fn();},delay||1400);
+}
+function nudge(s,msg){announce("👉 "+msg, s===1?"p1":"p2");}
+
+function charge(s){
+  if(state.over||state.acting||state.turn!==s)return;
+  if(state[s].energy<MAX_ENERGY)state[s].energy++;
+  renderEnergy(s);
+  beep([[500,.06],[660,.08]]);
+  announce("⚡ <b>"+esc(state[s].name)+"</b> charged up! (now ⚡"+state[s].energy+")", s===1?"p1":"p2");
+  lockThen(()=>switchTurn(),900);
+}
+
+function attack(attacker){
+  if(state.over||state.acting||state.turn!==attacker)return;
+  const defender=attacker===1?2:1;
+  const dmgIn=document.getElementById("atk"+attacker);
+  let base=parseInt(dmgIn.value,10);
+  if(!(base>=0)){nudge(attacker,"Type the attack's damage number first!");return;}
+  const cost=parseInt(document.getElementById("cost"+attacker).value,10);
+  if(state[attacker].energy<cost){
+    nudge(attacker,"Needs ⚡"+cost+" — press ⚡ Charge to power up!");
+    beep([[160,.12]]);
+    return;
+  }
+  const atkType=state[attacker].type;
+  let dmg=base, notes=[];
+  if(state[defender].weak && state[defender].weak===atkType){dmg*=2;notes.push("super-effective ×2");}
+  if(state[defender].resist && state[defender].resist===atkType){dmg=Math.max(0,dmg-30);notes.push("resisted −30");}
+  let roll=0;
+  if(luckOn){
+    roll=1+Math.floor(Math.random()*6);
+    if(roll===1){dmg=0;notes.push("🎲1 MISS!");}
+    else if(roll===6){dmg+=20;notes.push("🎲6 CRIT +20");}
+    else notes.push("🎲"+roll);
+  }
+  dmgIn.value="";
+  const atkName=esc(state[attacker].name),defName=esc(state[defender].name);
+  const noteStr=notes.length?" <span style='opacity:.85'>("+notes.join(", ")+")</span>":"";
+  const cls=attacker===1?"p1":"p2";
+  if(dmg<=0){
+    announce("💨 <b>"+atkName+"</b> "+(roll===1?"missed":"did no damage to ")+(roll===1?"!":defName)+noteStr,cls);
+    beep([[200,.1]]);
+    lockThen(()=>switchTurn());
+    return;
+  }
+  announce("⚔️ <b>"+atkName+"</b> hit "+defName+" for <b>"+dmg+"</b>!"+noteStr,cls);
+  changeHP(defender,-dmg);   // may trigger faint (which sets state.over)
+  lockThen(()=>switchTurn());
+}
+
+function coinFlip(){
+  const heads=Math.random()<0.5;
+  beep([[700,.06],[900,.08]]);
+  announce("🪙 "+(heads?"HEADS":"TAILS")+"!", heads?"p1":"p2");
+}
+
 function faint(loser){
   state.over=true;
+  state.turn=0;
   const winner=loser===1?2:1;
   document.getElementById("panel"+loser).classList.add("fainted");
+  document.getElementById("panel"+loser).classList.remove("active","waiting");
   document.getElementById("panel"+winner).classList.add("winner-glow");
+  document.getElementById("panel"+winner).classList.remove("active","waiting");
+  announce("💥 <b>"+esc(state[loser].name)+"</b> fainted!", winner===1?"p1":"p2");
   bgm.pause(); // hush the battle music so the victory fanfare rings out
   beep([[392,.1],[330,.18]]); // faint sound
   setTimeout(()=>showWinner(winner),700);
@@ -479,14 +715,20 @@ function showWinner(s){
 
 function reset(){
   state.over=false;
+  state.turn=0;
+  state.acting=false;
   stopMusic();
   document.getElementById("overlay").classList.remove("show");
   for(const s of [1,2]){
     const panel=document.getElementById("panel"+s);
-    panel.classList.remove("battling","fainted","winner-glow");
+    panel.classList.remove("battling","fainted","winner-glow","active","waiting");
+    document.getElementById("atk"+s).value="";
+    document.getElementById("sprite"+s).style.display="none";
+    document.getElementById("ball"+s).style.display="block";
   }
   document.getElementById("startBtn").style.display="inline-block";
   document.getElementById("resetBtn").style.display="none";
+  announce("Set up both Pokémon, then press ▶ Start Battle!");
 }
 
 // ------- events -------
@@ -495,28 +737,34 @@ document.getElementById("resetBtn").onclick=reset;
 document.getElementById("againBtn").onclick=reset;
 document.getElementById("soundBtn").onclick=function(){
   soundOn=!soundOn;
-  this.textContent=soundOn?"🔊 Sound: On":"🔇 Sound: Off";
+  this.textContent=soundOn?"🔊 FX: On":"🔇 FX: Off";
+};
+document.getElementById("coinBtn").onclick=coinFlip;
+document.getElementById("luckBtn").onclick=function(){
+  luckOn=!luckOn;
+  this.textContent=luckOn?"🎲 Luck Dice: On":"🎲 Luck Dice: Off";
+  this.classList.toggle("off",!luckOn);
 };
 
-document.querySelectorAll(".dmg button, .custom-row button").forEach(btn=>{
+// combat buttons (attack / charge)
+document.querySelectorAll(".combat button").forEach(btn=>{
   btn.addEventListener("click",()=>{
-    const s=+btn.dataset.side;
-    if(btn.dataset.amt){changeHP(s,-(+btn.dataset.amt));}
-    else if(btn.dataset.heal){changeHP(s,+5);}
-    else if(btn.dataset.custom){
-      const inp=document.getElementById("custom"+s);
-      const v=parseInt(inp.value,10);
-      if(v>0){changeHP(s,-v);inp.value="";}
-    }
+    if(btn.dataset.attack) attack(+btn.dataset.attack);
+    else if(btn.dataset.charge) charge(+btn.dataset.charge);
   });
 });
-// Enter key in custom damage box = hit
+// Enter inside a damage box = attack for that side
 [1,2].forEach(s=>{
-  document.getElementById("custom"+s).addEventListener("keydown",e=>{
-    if(e.key==="Enter"){
-      const v=parseInt(e.target.value,10);
-      if(v>0){changeHP(s,-v);e.target.value="";}
-    }
+  document.getElementById("atk"+s).addEventListener("keydown",e=>{
+    if(e.key==="Enter") attack(s);
+  });
+});
+// manual HP fix buttons (always available for the grown-up running it)
+document.querySelectorAll(".adjust button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const s=+btn.dataset.side;
+    if(btn.dataset.heal) changeHP(s,+10);
+    else if(btn.dataset.amt) changeHP(s,-(+btn.dataset.amt));
   });
 });
 

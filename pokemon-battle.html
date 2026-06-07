@@ -202,6 +202,27 @@
   #turnmsg.flash{animation:msgflash .45s;}
   @keyframes msgflash{0%{transform:scale(1);}45%{transform:scale(1.1);}100%{transform:scale(1);}}
 
+  /* ---------- Scoreboard (best of 3) ---------- */
+  #scoreboard{
+    display:none;align-items:center;justify-content:center;gap:clamp(10px,2vw,32px);
+    padding:.2vh 0 .4vh;flex:0 0 auto;
+  }
+  #scoreboard .sb{
+    display:flex;align-items:center;gap:8px;
+    font-size:clamp(14px,2vw,26px);font-weight:900;
+    padding:.2vh clamp(10px,1.4vw,18px);border-radius:999px;
+  }
+  #scoreboard .sb.p1{background:rgba(238,29,29,.28);}
+  #scoreboard .sb.p2{background:rgba(31,111,214,.28);}
+  #scoreboard .pips{font-size:clamp(14px,1.9vw,24px);letter-spacing:2px;}
+  #sbLabel{
+    border:none;cursor:pointer;font-family:inherit;font-weight:900;letter-spacing:1px;
+    font-size:clamp(11px,1.4vw,18px);text-transform:uppercase;color:#3a2e00;
+    background:linear-gradient(#ffde00,#f7a400);border-radius:999px;
+    padding:.3vh clamp(10px,1.4vw,18px);box-shadow:0 3px 0 rgba(0,0,0,.3);
+  }
+  #sbLabel:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.3);}
+
   /* ---------- Active / waiting panel ---------- */
   .panel.active{border-color:#ffde00;box-shadow:0 0 40px rgba(255,222,0,.45),inset 0 0 60px rgba(255,255,255,.05);}
   .panel.waiting .combat{opacity:.3;pointer-events:none;filter:grayscale(.6);}
@@ -289,6 +310,12 @@
 <header><h1>⚡ POKÉMON BATTLE ARENA ⚡</h1></header>
 
 <div id="turnbar"><span id="turnmsg">Set up both Pokémon, then press ▶ Start Battle!</span></div>
+
+<div id="scoreboard">
+  <span class="sb p1"><b id="sbName1">Trainer 1</b> <span class="pips" id="sbPips1"></span></span>
+  <button id="sbLabel" title="Click to reset the match score">Best of 3</button>
+  <span class="sb p2"><span class="pips" id="sbPips2"></span> <b id="sbName2">Trainer 2</b></span>
+</div>
 
 <div class="arena">
   <!-- LEFT -->
@@ -481,6 +508,24 @@ function setSprite(s,name){
     img.style.display="none";ball.style.display="block";
   }
 }
+// auto-select the Type dropdown from the chosen Pokémon (uses its primary game type)
+async function autoType(side){
+  const id=lookupDex(document.getElementById("name"+side).value);
+  if(!id)return;
+  try{
+    const r=await fetch("https://pokeapi.co/api/v2/pokemon/"+id);
+    if(!r.ok)return;
+    const j=await r.json();
+    const primary=j.types&&j.types[0]&&j.types[0].type&&j.types[0].type.name;
+    if(!primary)return;
+    const T=primary.charAt(0).toUpperCase()+primary.slice(1);
+    const sel=document.getElementById("type"+side);
+    if([...sel.options].some(o=>o.value===T)) sel.value=T;
+  }catch(e){}
+}
+[1,2].forEach(s=>{
+  document.getElementById("name"+s).addEventListener("change",()=>autoType(s));
+});
 
 // populate music dropdown
 const musicSelect=document.getElementById("musicSelect");
@@ -524,12 +569,27 @@ const state={
   1:{max:100,cur:100,name:"",trainer:"",type:"Fire",weak:"",resist:"",energy:1},
   2:{max:100,cur:100,name:"",trainer:"",type:"Water",weak:"",resist:"",energy:1},
   over:false,
-  turn:0  // whose turn it is (1 or 2); 0 = battle not started
+  turn:0, // whose turn it is (1 or 2); 0 = battle not started
+  scores:{1:0,2:0}
 };
 let soundOn=true;
 let luckOn=true;     // luck dice on attacks
 const MAX_ENERGY=4;  // energy pip cap
 const START_ENERGY=1;// everyone starts with 1 (so 1-cost attacks fire immediately)
+const BEST_OF=3;                            // best-of-3 match
+const WINS_NEEDED=Math.ceil(BEST_OF/2);     // first to 2 wins
+
+// ---- scoreboard ----
+function scorePips(n){let s="";for(let i=0;i<WINS_NEEDED;i++)s+= i<n?"⭐":"·";return s;}
+function renderScore(){
+  const sb=document.getElementById("scoreboard");
+  if(state.scores[1]+state.scores[2]===0 && !isBattling()){sb.style.display="none";return;}
+  sb.style.display="flex";
+  document.getElementById("sbName1").textContent=state[1].trainer||"Trainer 1";
+  document.getElementById("sbName2").textContent=state[2].trainer||"Trainer 2";
+  document.getElementById("sbPips1").textContent=scorePips(state.scores[1]);
+  document.getElementById("sbPips2").textContent=scorePips(state.scores[2]);
+}
 
 const SIDE_COLOR={1:"#ee1d1d",2:"#1f6fd6"};
 
@@ -594,6 +654,7 @@ function startBattle(){
     renderEnergy(s);
   }
   state.over=false;
+  renderScore();
   document.getElementById("startBtn").style.display="none";
   document.getElementById("resetBtn").style.display="inline-block";
   beep([[523,.12],[659,.12],[784,.18]]); // ascending start jingle
@@ -659,8 +720,8 @@ function attack(attacker){
     return;
   }
   const atkType=state[attacker].type;
-  let dmg=base, notes=[];
-  if(state[defender].weak && state[defender].weak===atkType){dmg*=2;notes.push("super-effective ×2");}
+  let dmg=base, notes=[], superEff=false;
+  if(state[defender].weak && state[defender].weak===atkType){dmg*=2;superEff=true;notes.push("super-effective ×2");}
   if(state[defender].resist && state[defender].resist===atkType){dmg=Math.max(0,dmg-30);notes.push("resisted −30");}
   let roll=0;
   if(luckOn){
@@ -679,10 +740,13 @@ function attack(attacker){
     lockThen(()=>switchTurn());
     return;
   }
-  announce("⚔️ <b>"+atkName+"</b> hit "+defName+" for <b>"+dmg+"</b>!"+noteStr,cls);
+  if(superEff && dmg>0) superEffectiveFX();
+  const lead = (superEff && dmg>0) ? "⚡ <b>SUPER-EFFECTIVE!</b> " : "⚔️ ";
+  announce(lead+"<b>"+atkName+"</b> hit "+defName+" for <b>"+dmg+"</b>!"+noteStr,cls);
   changeHP(defender,-dmg);   // may trigger faint (which sets state.over)
   lockThen(()=>switchTurn());
 }
+function superEffectiveFX(){ beep([[784,.06],[1047,.06],[1319,.07],[1568,.16]]); } // bright rising zap
 
 function coinFlip(){
   const heads=Math.random()<0.5;
@@ -705,9 +769,28 @@ function faint(loser){
 }
 
 function showWinner(s){
-  const st=state[s];
+  const st=state[s], other=s===1?2:1;
+  state.scores[s]++;
+  renderScore();
+  const matchOver = state.scores[s] >= WINS_NEEDED;
   document.getElementById("winnerName").textContent=st.trainer;
-  document.getElementById("winnerPoke").textContent=st.name;
+  const crown=document.querySelector(".overlay .crown");
+  const wintxt=document.querySelector(".overlay .wintxt");
+  const sub=document.querySelector(".overlay .sub");
+  const againBtn=document.getElementById("againBtn");
+  if(matchOver){
+    crown.textContent="🏆";
+    wintxt.textContent="MATCH CHAMPION!";
+    sub.innerHTML='<span class="winpoke">'+esc(st.name)+'</span> wins the match '+state.scores[s]+'–'+state.scores[other]+'!';
+    againBtn.textContent="🎉 New Match";
+    againBtn.dataset.mode="match";
+  }else{
+    crown.textContent="👑";
+    wintxt.textContent="Round Winner!";
+    sub.innerHTML='Score: <b>'+state.scores[1]+'</b> – <b>'+state.scores[2]+'</b> &nbsp;•&nbsp; first to '+WINS_NEEDED+' wins the match';
+    againBtn.textContent="Next Round →";
+    againBtn.dataset.mode="round";
+  }
   document.getElementById("overlay").classList.add("show");
   fanfare();
   confettiBurst();
@@ -729,12 +812,20 @@ function reset(){
   document.getElementById("startBtn").style.display="inline-block";
   document.getElementById("resetBtn").style.display="none";
   announce("Set up both Pokémon, then press ▶ Start Battle!");
+  renderScore();
 }
 
 // ------- events -------
 document.getElementById("startBtn").onclick=startBattle;
 document.getElementById("resetBtn").onclick=reset;
-document.getElementById("againBtn").onclick=reset;
+document.getElementById("againBtn").onclick=function(){
+  if(this.dataset.mode==="match") state.scores={1:0,2:0}; // new match -> wipe the score
+  reset();
+};
+document.getElementById("sbLabel").onclick=function(){
+  state.scores={1:0,2:0};
+  renderScore();
+};
 document.getElementById("soundBtn").onclick=function(){
   soundOn=!soundOn;
   this.textContent=soundOn?"🔊 FX: On":"🔇 FX: Off";

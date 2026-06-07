@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pokémon Battle Arena</title>
+<style>
+  :root{
+    --normal:#A8A77A;--fire:#EE8130;--water:#6390F0;--electric:#F7D02C;
+    --grass:#7AC74C;--ice:#96D9D6;--fighting:#C22E28;--poison:#A33EA1;
+    --ground:#E2BF65;--flying:#A98FF3;--psychic:#F95587;--bug:#A6B91A;
+    --rock:#B6A136;--ghost:#735797;--dragon:#6F35FC;--dark:#705746;
+    --steel:#B7B7CE;--fairy:#D685AD;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+    background:radial-gradient(circle at 50% 0%,#1d2b53 0%,#0c0f24 70%,#05060f 100%);
+    color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;
+  }
+
+  /* ---------- Title bar ---------- */
+  header{
+    text-align:center;padding:1.2vh 0 0.4vh;
+  }
+  header h1{
+    font-size:clamp(28px,5vw,68px);
+    letter-spacing:2px;
+    text-shadow:0 0 12px #ffcb05,0 4px 0 #2a75bb,0 6px 14px rgba(0,0,0,.6);
+    color:#ffde00;
+    -webkit-text-stroke:2px #2a75bb;
+  }
+
+  /* ---------- Arena ---------- */
+  .arena{
+    display:flex;align-items:stretch;justify-content:center;
+    gap:clamp(10px,2vw,40px);
+    height:calc(100vh - 9vh);
+    padding:0 clamp(10px,2vw,40px) 2vh;
+  }
+  .panel{
+    flex:1 1 0;max-width:46vw;
+    border-radius:24px;
+    padding:clamp(12px,2vh,28px);
+    display:flex;flex-direction:column;
+    background:rgba(255,255,255,.06);
+    border:4px solid rgba(255,255,255,.15);
+    box-shadow:0 10px 40px rgba(0,0,0,.5),inset 0 0 60px rgba(255,255,255,.04);
+    position:relative;transition:transform .15s,box-shadow .3s,border-color .3s;
+    min-width:0;
+  }
+  .panel.left{border-top-left-radius:60px;}
+  .panel.right{border-top-right-radius:60px;}
+  .panel.shake{animation:shake .35s;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-12px) rotate(-1deg);}
+    40%{transform:translateX(12px) rotate(1deg);}
+    60%{transform:translateX(-8px);}
+    80%{transform:translateX(8px);}
+  }
+  .panel.fainted{opacity:.45;filter:grayscale(.8);}
+  .panel.winner-glow{
+    border-color:#ffde00;
+    box-shadow:0 0 50px #ffde00,0 0 90px #ffcb05,inset 0 0 60px rgba(255,222,0,.2);
+  }
+
+  .vs{
+    align-self:center;display:flex;align-items:center;
+    font-size:clamp(40px,7vw,110px);font-weight:900;font-style:italic;
+    color:#ff1f4b;text-shadow:0 0 20px #ff1f4b,0 4px 0 #800;
+    -webkit-text-stroke:3px #fff;
+  }
+
+  /* ---------- Setup fields ---------- */
+  .field{margin-bottom:clamp(6px,1.4vh,16px);}
+  .field label{
+    display:block;font-size:clamp(11px,1.4vw,18px);
+    text-transform:uppercase;letter-spacing:1px;opacity:.8;margin-bottom:3px;
+  }
+  .field input,.field select{
+    width:100%;border:none;border-radius:12px;
+    padding:clamp(6px,1.2vh,12px) 14px;
+    font-size:clamp(15px,2vw,26px);font-family:inherit;font-weight:bold;
+    background:rgba(0,0,0,.35);color:#fff;outline:3px solid transparent;
+    transition:outline-color .15s;
+  }
+  .field input:focus,.field select:focus{outline-color:#ffde00;}
+  .field select option{color:#000;}
+
+  /* ---------- Battle view (hidden until start) ---------- */
+  .battle-view{display:none;flex:1;flex-direction:column;align-items:center;text-align:center;}
+  .panel.battling .setup-view{display:none;}
+  .panel.battling .battle-view{display:flex;}
+
+  .typebadge{
+    display:inline-block;padding:4px 18px;border-radius:999px;
+    font-size:clamp(13px,1.6vw,22px);font-weight:bold;text-transform:uppercase;
+    letter-spacing:1px;margin:6px 0;color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);box-shadow:0 4px 12px rgba(0,0,0,.35);
+  }
+  .pokename{
+    font-size:clamp(26px,4.2vw,62px);font-weight:900;line-height:1;
+    margin:.2vh 0;text-shadow:0 3px 8px rgba(0,0,0,.6);
+    word-break:break-word;
+  }
+  .trainer{font-size:clamp(13px,1.8vw,24px);opacity:.85;margin-bottom:1vh;}
+  .trainer b{color:#ffde00;}
+
+  .ball{
+    width:clamp(70px,14vh,150px);height:clamp(70px,14vh,150px);
+    border-radius:50%;margin:1vh auto;position:relative;
+    background:
+      linear-gradient(#ee1515 0 49%,#222 49% 51%,#fff 51% 100%);
+    border:5px solid #222;box-shadow:0 8px 20px rgba(0,0,0,.5);
+    transition:transform .3s;
+  }
+  .ball::after{
+    content:"";position:absolute;top:50%;left:50%;
+    width:26%;height:26%;border-radius:50%;
+    background:#fff;border:5px solid #222;transform:translate(-50%,-50%);
+  }
+  .panel.battling.fainted .ball{transform:rotate(20deg) translateY(10px);}
+
+  .hp-wrap{width:100%;margin-top:auto;}
+  .hp-top{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:clamp(14px,2vw,26px);font-weight:bold;margin-bottom:4px;}
+  .hp-label{letter-spacing:2px;color:#ffde00;}
+  .hp-num{font-variant-numeric:tabular-nums;}
+  .hp-bar{
+    height:clamp(22px,4vh,42px);border-radius:999px;
+    background:rgba(0,0,0,.45);overflow:hidden;border:3px solid rgba(255,255,255,.25);
+  }
+  .hp-fill{
+    height:100%;width:100%;border-radius:999px;
+    background:linear-gradient(#7CFC56,#3aaa28);
+    transition:width .5s cubic-bezier(.22,1,.36,1),background .4s;
+  }
+  .hp-fill.mid{background:linear-gradient(#ffd24d,#f7a400);}
+  .hp-fill.low{background:linear-gradient(#ff6b6b,#c81f1f);animation:pulse 1s infinite;}
+  @keyframes pulse{50%{opacity:.6;}}
+
+  /* ---------- Damage controls ---------- */
+  .dmg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:1.2vh;width:100%;}
+  .dmg button{
+    flex:1 1 0;min-width:60px;border:none;border-radius:14px;cursor:pointer;
+    font-family:inherit;font-weight:900;font-size:clamp(16px,2.4vw,30px);
+    padding:clamp(8px,1.6vh,16px) 0;color:#fff;
+    box-shadow:0 5px 0 rgba(0,0,0,.35);transition:transform .07s,box-shadow .07s,filter .1s;
+  }
+  .dmg button:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35);}
+  .dmg .minus{background:linear-gradient(#ff5d5d,#d61f1f);}
+  .dmg .plus{background:linear-gradient(#5db0ff,#1f6fd6);}
+  .dmg .heal{background:linear-gradient(#5dd47a,#1f9d45);}
+  .dmg button:hover{filter:brightness(1.1);}
+  .custom-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:8px;width:100%;}
+  .custom-row input{
+    width:70px;text-align:center;border:none;border-radius:10px;
+    padding:8px;font-size:clamp(15px,2vw,24px);font-weight:bold;
+    background:rgba(0,0,0,.35);color:#fff;
+  }
+  .custom-row button{
+    border:none;border-radius:10px;cursor:pointer;color:#fff;font-weight:bold;
+    padding:8px 16px;font-size:clamp(14px,1.8vw,22px);
+    background:linear-gradient(#ff7b3d,#d6541f);font-family:inherit;
+  }
+
+  /* ---------- Big buttons ---------- */
+  .controls{
+    position:fixed;bottom:0;left:0;right:0;
+    display:flex;gap:14px;justify-content:center;padding:1.2vh;
+    background:linear-gradient(transparent,rgba(0,0,0,.55));
+  }
+  .bigbtn{
+    border:none;border-radius:16px;cursor:pointer;font-family:inherit;
+    font-weight:900;letter-spacing:1px;text-transform:uppercase;
+    font-size:clamp(15px,2.2vw,28px);padding:clamp(10px,1.8vh,18px) clamp(24px,4vw,60px);
+    color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.4);transition:transform .08s,box-shadow .08s,filter .1s;
+  }
+  .bigbtn:active{transform:translateY(5px);box-shadow:0 1px 0 rgba(0,0,0,.4);}
+  .bigbtn:hover{filter:brightness(1.1);}
+  #startBtn{background:linear-gradient(#ffde00,#f7a400);color:#2a2a00;text-shadow:0 1px 0 rgba(255,255,255,.4);}
+  #resetBtn{background:linear-gradient(#8a8aa0,#55556e);display:none;}
+  #soundBtn{background:linear-gradient(#4a4a66,#33334a);font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
+
+  /* ---------- Winner overlay ---------- */
+  .overlay{
+    position:fixed;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;
+    background:radial-gradient(circle,rgba(20,10,60,.92),rgba(0,0,0,.96));
+    z-index:50;
+  }
+  .overlay.show{display:flex;animation:fadein .4s;}
+  @keyframes fadein{from{opacity:0;}to{opacity:1;}}
+  .overlay .crown{font-size:clamp(50px,12vw,160px);animation:bounce 1s infinite;}
+  @keyframes bounce{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-22px) scale(1.08);}}
+  .overlay .wintxt{
+    font-size:clamp(22px,4vw,52px);color:#ffde00;letter-spacing:2px;
+    text-shadow:0 0 14px #ffcb05;margin-bottom:1vh;
+  }
+  .overlay .winner-name{
+    font-size:clamp(44px,11vw,150px);font-weight:900;line-height:1;
+    background:linear-gradient(#fff,#ffde00,#ff9a00);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 40px rgba(255,222,0,.6);
+    animation:flash 1s infinite alternate,zoomin .6s;
+    padding:0 2vw;
+  }
+  @keyframes flash{from{filter:brightness(1);}to{filter:brightness(1.6) drop-shadow(0 0 30px #ffde00);}}
+  @keyframes zoomin{from{transform:scale(.3);opacity:0;}to{transform:scale(1);opacity:1;}}
+  .overlay .sub{font-size:clamp(18px,3vw,40px);margin-top:1.5vh;opacity:.9;}
+  .overlay .winpoke{color:#7CFC56;font-weight:bold;}
+  .overlay .againbtn{
+    margin-top:4vh;background:linear-gradient(#ffde00,#f7a400);color:#2a2a00;
+    border:none;border-radius:18px;cursor:pointer;font-family:inherit;font-weight:900;
+    text-transform:uppercase;letter-spacing:1px;
+    font-size:clamp(18px,3vw,36px);padding:clamp(14px,2.4vh,24px) clamp(40px,6vw,80px);
+    box-shadow:0 7px 0 #b87b00;
+  }
+  .overlay .againbtn:active{transform:translateY(6px);box-shadow:0 1px 0 #b87b00;}
+
+  /* confetti */
+  .confetti{position:fixed;top:-20px;width:14px;height:14px;z-index:60;pointer-events:none;border-radius:2px;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);}}
+</style>
+</head>
+<body>
+
+<header><h1>⚡ POKÉMON BATTLE ARENA ⚡</h1></header>
+
+<div class="arena">
+  <!-- LEFT -->
+  <section class="panel left" id="panel1">
+    <div class="setup-view">
+      <div class="field"><label>Trainer Name</label><input id="trainer1" placeholder="Ash" /></div>
+      <div class="field"><label>Pokémon Name</label><input id="name1" placeholder="Pikachu" /></div>
+      <div class="field"><label>Type</label><select id="type1"></select></div>
+      <div class="field"><label>Hit Points (HP)</label><input id="hp1" type="number" value="100" min="1" /></div>
+    </div>
+    <div class="battle-view">
+      <div class="ball" id="ball1"></div>
+      <div class="trainer">Trainer: <b id="dTrainer1"></b></div>
+      <div class="pokename" id="dName1"></div>
+      <div class="typebadge" id="dType1"></div>
+      <div class="hp-wrap">
+        <div class="hp-top"><span class="hp-label">HP</span><span class="hp-num" id="hpNum1"></span></div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill1"></div></div>
+        <div class="dmg">
+          <button class="minus" data-side="1" data-amt="1">-1</button>
+          <button class="minus" data-side="1" data-amt="5">-5</button>
+          <button class="minus" data-side="1" data-amt="10">-10</button>
+          <button class="minus" data-side="1" data-amt="20">-20</button>
+        </div>
+        <div class="custom-row">
+          <button class="heal" data-side="1" data-heal="1" style="background:linear-gradient(#5dd47a,#1f9d45);border:none;border-radius:10px;color:#fff;font-weight:bold;padding:8px 14px;cursor:pointer;font-family:inherit;">+ Heal</button>
+          <input type="number" id="custom1" placeholder="#" min="1" />
+          <button data-side="1" data-custom="1">Hit!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="vs">VS</div>
+
+  <!-- RIGHT -->
+  <section class="panel right" id="panel2">
+    <div class="setup-view">
+      <div class="field"><label>Trainer Name</label><input id="trainer2" placeholder="Misty" /></div>
+      <div class="field"><label>Pokémon Name</label><input id="name2" placeholder="Starmie" /></div>
+      <div class="field"><label>Type</label><select id="type2"></select></div>
+      <div class="field"><label>Hit Points (HP)</label><input id="hp2" type="number" value="100" min="1" /></div>
+    </div>
+    <div class="battle-view">
+      <div class="ball" id="ball2"></div>
+      <div class="trainer">Trainer: <b id="dTrainer2"></b></div>
+      <div class="pokename" id="dName2"></div>
+      <div class="typebadge" id="dType2"></div>
+      <div class="hp-wrap">
+        <div class="hp-top"><span class="hp-label">HP</span><span class="hp-num" id="hpNum2"></span></div>
+        <div class="hp-bar"><div class="hp-fill" id="hpFill2"></div></div>
+        <div class="dmg">
+          <button class="minus" data-side="2" data-amt="1">-1</button>
+          <button class="minus" data-side="2" data-amt="5">-5</button>
+          <button class="minus" data-side="2" data-amt="10">-10</button>
+          <button class="minus" data-side="2" data-amt="20">-20</button>
+        </div>
+        <div class="custom-row">
+          <button class="heal" data-side="2" data-heal="1" style="background:linear-gradient(#5dd47a,#1f9d45);border:none;border-radius:10px;color:#fff;font-weight:bold;padding:8px 14px;cursor:pointer;font-family:inherit;">+ Heal</button>
+          <input type="number" id="custom2" placeholder="#" min="1" />
+          <button data-side="2" data-custom="1">Hit!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="controls">
+  <button class="bigbtn" id="startBtn">▶ Start Battle</button>
+  <button class="bigbtn" id="resetBtn">↻ New Battle</button>
+  <button class="bigbtn" id="soundBtn">🔊 Sound: On</button>
+</div>
+
+<!-- WINNER OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="crown">👑</div>
+  <div class="wintxt">WINNER!</div>
+  <div class="winner-name" id="winnerName"></div>
+  <div class="sub"><span class="winpoke" id="winnerPoke"></span> is victorious!</div>
+  <button class="againbtn" id="againBtn">Battle Again!</button>
+</div>
+
+<script>
+const TYPES=["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
+const TYPE_VAR={Normal:"--normal",Fire:"--fire",Water:"--water",Electric:"--electric",Grass:"--grass",Ice:"--ice",Fighting:"--fighting",Poison:"--poison",Ground:"--ground",Flying:"--flying",Psychic:"--psychic",Bug:"--bug",Rock:"--rock",Ghost:"--ghost",Dragon:"--dragon",Dark:"--dark",Steel:"--steel",Fairy:"--fairy"};
+const EMOJI={Normal:"⭐",Fire:"🔥",Water:"💧",Electric:"⚡",Grass:"🌿",Ice:"❄️",Fighting:"🥊",Poison:"☠️",Ground:"⛰️",Flying:"🪽",Psychic:"🔮",Bug:"🐛",Rock:"🪨",Ghost:"👻",Dragon:"🐉",Dark:"🌙",Steel:"⚙️",Fairy:"🧚"};
+
+// populate type dropdowns
+["type1","type2"].forEach((id,i)=>{
+  const sel=document.getElementById(id);
+  TYPES.forEach(t=>{const o=document.createElement("option");o.value=t;o.textContent=EMOJI[t]+" "+t;sel.appendChild(o);});
+  sel.selectedIndex = i===0?1:2; // Fire vs Water default fun
+});
+
+const state={
+  1:{max:100,cur:100,name:"",trainer:"",type:"Fire"},
+  2:{max:100,cur:100,name:"",trainer:"",type:"Water"},
+  over:false
+};
+let soundOn=true;
+
+function cssColor(type){return getComputedStyle(document.documentElement).getPropertyValue(TYPE_VAR[type]).trim();}
+
+function startBattle(){
+  for(const s of [1,2]){
+    const trainer=document.getElementById("trainer"+s).value.trim()||("Trainer "+s);
+    const name=document.getElementById("name"+s).value.trim()||("Pokémon "+s);
+    const type=document.getElementById("type"+s).value;
+    let hp=parseInt(document.getElementById("hp"+s).value,10);
+    if(!hp||hp<1)hp=100;
+    state[s]={max:hp,cur:hp,name,trainer,type};
+    // fill display
+    document.getElementById("dTrainer"+s).textContent=trainer;
+    document.getElementById("dName"+s).textContent=name;
+    const badge=document.getElementById("dType"+s);
+    badge.textContent=EMOJI[type]+" "+type;
+    badge.style.background=cssColor(type);
+    const panel=document.getElementById("panel"+s);
+    panel.classList.add("battling");
+    panel.classList.remove("fainted","winner-glow");
+    // tint ball top color toward type
+    document.getElementById("ball"+s).style.background=
+      `linear-gradient(${cssColor(type)} 0 49%,#222 49% 51%,#fff 51% 100%)`;
+    updateHP(s);
+  }
+  state.over=false;
+  document.getElementById("startBtn").style.display="none";
+  document.getElementById("resetBtn").style.display="inline-block";
+  beep([[523,.12],[659,.12],[784,.18]]); // ascending start jingle
+}
+
+function updateHP(s){
+  const st=state[s];
+  const pct=Math.max(0,(st.cur/st.max)*100);
+  const fill=document.getElementById("hpFill"+s);
+  fill.style.width=pct+"%";
+  fill.classList.toggle("mid",pct<=50&&pct>20);
+  fill.classList.toggle("low",pct<=20);
+  document.getElementById("hpNum"+s).textContent=Math.max(0,st.cur)+" / "+st.max;
+}
+
+function changeHP(s,delta){
+  if(state.over)return;
+  const st=state[s];
+  st.cur=Math.min(st.max,st.cur+delta);
+  if(st.cur<0)st.cur=0;
+  updateHP(s);
+  const panel=document.getElementById("panel"+s);
+  if(delta<0){
+    panel.classList.remove("shake");void panel.offsetWidth;panel.classList.add("shake");
+    beep([[180,.08]]); // hit thud
+  }
+  if(st.cur===0){faint(s);}
+}
+
+function faint(loser){
+  state.over=true;
+  const winner=loser===1?2:1;
+  document.getElementById("panel"+loser).classList.add("fainted");
+  document.getElementById("panel"+winner).classList.add("winner-glow");
+  beep([[392,.1],[330,.18]]); // faint sound
+  setTimeout(()=>showWinner(winner),700);
+}
+
+function showWinner(s){
+  const st=state[s];
+  document.getElementById("winnerName").textContent=st.trainer;
+  document.getElementById("winnerPoke").textContent=st.name;
+  document.getElementById("overlay").classList.add("show");
+  fanfare();
+  confettiBurst();
+}
+
+function reset(){
+  state.over=false;
+  document.getElementById("overlay").classList.remove("show");
+  for(const s of [1,2]){
+    const panel=document.getElementById("panel"+s);
+    panel.classList.remove("battling","fainted","winner-glow");
+  }
+  document.getElementById("startBtn").style.display="inline-block";
+  document.getElementById("resetBtn").style.display="none";
+}
+
+// ------- events -------
+document.getElementById("startBtn").onclick=startBattle;
+document.getElementById("resetBtn").onclick=reset;
+document.getElementById("againBtn").onclick=reset;
+document.getElementById("soundBtn").onclick=function(){
+  soundOn=!soundOn;
+  this.textContent=soundOn?"🔊 Sound: On":"🔇 Sound: Off";
+};
+
+document.querySelectorAll(".dmg button, .custom-row button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const s=+btn.dataset.side;
+    if(btn.dataset.amt){changeHP(s,-(+btn.dataset.amt));}
+    else if(btn.dataset.heal){changeHP(s,+5);}
+    else if(btn.dataset.custom){
+      const inp=document.getElementById("custom"+s);
+      const v=parseInt(inp.value,10);
+      if(v>0){changeHP(s,-v);inp.value="";}
+    }
+  });
+});
+// Enter key in custom damage box = hit
+[1,2].forEach(s=>{
+  document.getElementById("custom"+s).addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      const v=parseInt(e.target.value,10);
+      if(v>0){changeHP(s,-v);e.target.value="";}
+    }
+  });
+});
+
+// ------- sound (Web Audio, no files) -------
+let actx;
+function ensureCtx(){if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();}
+function beep(notes){ // notes: [[freq,dur],...]
+  if(!soundOn)return;
+  try{
+    ensureCtx();
+    let t=actx.currentTime;
+    notes.forEach(([f,d])=>{
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type="square";o.frequency.value=f;
+      o.connect(g);g.connect(actx.destination);
+      g.gain.setValueAtTime(.0001,t);
+      g.gain.exponentialRampToValueAtTime(.22,t+.02);
+      g.gain.exponentialRampToValueAtTime(.0001,t+d);
+      o.start(t);o.stop(t+d);t+=d;
+    });
+  }catch(e){}
+}
+function fanfare(){
+  // classic victory-ish run
+  beep([[523,.14],[523,.14],[523,.14],[523,.28],[415,.28],[466,.28],[523,.18],[466,.1],[523,.5]]);
+}
+
+// ------- confetti -------
+function confettiBurst(){
+  const colors=["#ffde00","#ff1f4b","#3aaa28","#1f6fd6","#ff9a00","#a98ff3","#ffffff"];
+  for(let i=0;i<120;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"vw";
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    const dur=2+Math.random()*2.5;
+    c.style.animation=`fall ${dur}s linear ${Math.random()*0.6}s forwards`;
+    c.style.width=c.style.height=(8+Math.random()*12)+"px";
+    if(Math.random()<.5)c.style.borderRadius="50%";
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),(dur+1)*1000);
+  }
+}
+
+// keep confetti going a little while overlay is up
+let confettiTimer;
+const ov=document.getElementById("overlay");
+new MutationObserver(()=>{
+  if(ov.classList.contains("show")){
+    clearInterval(confettiTimer);
+    confettiTimer=setInterval(confettiBurst,1400);
+  }else{clearInterval(confettiTimer);}
+}).observe(ov,{attributes:true,attributeFilter:["class"]});
+</script>
+</body>
+</html>

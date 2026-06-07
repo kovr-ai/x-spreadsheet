@@ -185,6 +185,22 @@
   #coinBtn{background:linear-gradient(#ffd24d,#e0a800);color:#3a2e00;font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
   #luckBtn{background:linear-gradient(#5dd47a,#1f9d45);font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
   #luckBtn.off{background:linear-gradient(#8a8aa0,#55556e);}
+  #helpBtn{background:linear-gradient(#4a4a66,#33334a);font-size:clamp(13px,1.6vw,20px);padding:clamp(10px,1.8vh,18px) clamp(16px,2vw,28px);}
+
+  /* ---------- How to Play panel ---------- */
+  .help-overlay{background:rgba(5,6,15,.92);}
+  .help-card{
+    background:linear-gradient(#15224a,#0c1430);border:4px solid #ffde00;border-radius:24px;
+    max-width:min(900px,92vw);max-height:86vh;overflow:auto;padding:clamp(18px,3vh,36px) clamp(20px,4vw,48px);
+    box-shadow:0 0 50px rgba(255,222,0,.3);text-align:left;
+  }
+  .help-card h2{font-size:clamp(24px,4vw,46px);color:#ffde00;text-align:center;margin-bottom:1.2vh;
+    text-shadow:0 0 12px #ffcb05;-webkit-text-stroke:1px #2a75bb;}
+  .help-card ol{margin:0 0 1.4vh 1.2em;display:flex;flex-direction:column;gap:1vh;}
+  .help-card li{font-size:clamp(15px,1.9vw,24px);line-height:1.35;}
+  .help-card ul{margin:.6vh 0 .2vh 1.1em;display:flex;flex-direction:column;gap:.5vh;}
+  .help-card b{color:#ffde00;}
+  .help-card .againbtn{display:block;margin:1vh auto 0;}
 
   /* ---------- Turn banner ---------- */
   #turnbar{
@@ -409,6 +425,7 @@
   <button class="bigbtn" id="coinBtn">🪙 Coin Flip</button>
   <button class="bigbtn" id="luckBtn">🎲 Luck Dice: On</button>
   <button class="bigbtn" id="soundBtn">🔊 FX: On</button>
+  <button class="bigbtn" id="helpBtn">❓ How to Play</button>
   <div class="music-controls">
     <button class="bigbtn" id="musicBtn">🎵 Music: On</button>
     <select id="musicSelect" title="Choose battle music"></select>
@@ -418,6 +435,29 @@
 
 <audio id="bgm" loop></audio>
 <datalist id="dexlist"></datalist>
+
+<!-- HOW TO PLAY -->
+<div class="overlay help-overlay" id="help">
+  <div class="help-card">
+    <h2>❓ How to Play</h2>
+    <ol>
+      <li><b>Set up each Pokémon.</b> Type the trainer's name, pick the Pokémon from the list (its picture, type &amp; weakness fill in automatically), and enter the <b>HP</b> printed on the card. Double-check the <b>Weakness</b> matches the card.</li>
+      <li><b>Press ▶ Start Battle.</b> A coin flip decides who goes first. The active trainer's card glows gold.</li>
+      <li><b>On your turn,</b> either:
+        <ul>
+          <li><b>⚔️ Attack</b> — type the attack's damage number from the card, pick how many ⚡ it costs, and hit Attack.</li>
+          <li><b>⚡ Charge</b> — power up one ⚡ and pass your turn.</li>
+        </ul>
+      </li>
+      <li><b>The charge rule:</b> you start with 1 ⚡. An attack can only fire when you have enough ⚡ for its cost — big attacks need a charge turn first.</li>
+      <li><b>Weakness doubles damage</b> (⚡ super-effective!). <b>Resistance</b> takes 30 off.</li>
+      <li><b>🎲 Luck dice</b> (optional): each attack rolls a die — 1 = miss, 6 = +20 critical.</li>
+      <li><b>First Pokémon to 0 HP faints</b> — the other trainer wins the round!</li>
+      <li><b>🏅 Best of 3:</b> first trainer to win 2 rounds is the Match Champion. The little <b>fix HP</b> buttons let a grown-up correct HP or apply a special Ability by hand.</li>
+    </ol>
+    <button class="againbtn" id="helpClose">Got it! ✕</button>
+  </div>
+</div>
 
 <!-- WINNER OVERLAY -->
 <div class="overlay" id="overlay">
@@ -432,6 +472,11 @@
 const TYPES=["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
 const TYPE_VAR={Normal:"--normal",Fire:"--fire",Water:"--water",Electric:"--electric",Grass:"--grass",Ice:"--ice",Fighting:"--fighting",Poison:"--poison",Ground:"--ground",Flying:"--flying",Psychic:"--psychic",Bug:"--bug",Rock:"--rock",Ghost:"--ghost",Dragon:"--dragon",Dark:"--dark",Steel:"--steel",Fairy:"--fairy"};
 const EMOJI={Normal:"⭐",Fire:"🔥",Water:"💧",Electric:"⚡",Grass:"🌿",Ice:"❄️",Fighting:"🥊",Poison:"☠️",Ground:"⛰️",Flying:"🪽",Psychic:"🔮",Bug:"🐛",Rock:"🪨",Ghost:"👻",Dragon:"🐉",Dark:"🌙",Steel:"⚙️",Fairy:"🧚"};
+
+// A sensible single Weakness for each primary type (approximation of the card's weakness).
+const WEAK_BY_TYPE={Normal:"Fighting",Fire:"Water",Water:"Electric",Electric:"Ground",Grass:"Fire",
+  Ice:"Fire",Fighting:"Psychic",Poison:"Psychic",Ground:"Water",Flying:"Electric",Psychic:"Dark",
+  Bug:"Fire",Rock:"Grass",Ghost:"Dark",Dragon:"Fairy",Dark:"Fighting",Steel:"Fire",Fairy:"Steel"};
 
 // ---- Background music ----
 // Friendly names shown in the dropdown (order matters).
@@ -508,8 +553,13 @@ function setSprite(s,name){
     img.style.display="none";ball.style.display="block";
   }
 }
-// auto-select the Type dropdown from the chosen Pokémon (uses its primary game type)
-async function autoType(side){
+function setSelectIfPresent(id,val){
+  const sel=document.getElementById(id);
+  if([...sel.options].some(o=>o.value===val)){sel.value=val;return true;}
+  return false;
+}
+// auto-fill Type and Weakness from the chosen Pokémon (primary game type)
+async function autoFill(side){
   const id=lookupDex(document.getElementById("name"+side).value);
   if(!id)return;
   try{
@@ -519,12 +569,12 @@ async function autoType(side){
     const primary=j.types&&j.types[0]&&j.types[0].type&&j.types[0].type.name;
     if(!primary)return;
     const T=primary.charAt(0).toUpperCase()+primary.slice(1);
-    const sel=document.getElementById("type"+side);
-    if([...sel.options].some(o=>o.value===T)) sel.value=T;
+    setSelectIfPresent("type"+side,T);
+    if(WEAK_BY_TYPE[T]) setSelectIfPresent("weak"+side,WEAK_BY_TYPE[T]);
   }catch(e){}
 }
 [1,2].forEach(s=>{
-  document.getElementById("name"+s).addEventListener("change",()=>autoType(s));
+  document.getElementById("name"+s).addEventListener("change",()=>autoFill(s));
 });
 
 // populate music dropdown
@@ -826,6 +876,10 @@ document.getElementById("sbLabel").onclick=function(){
   state.scores={1:0,2:0};
   renderScore();
 };
+const helpOverlay=document.getElementById("help");
+document.getElementById("helpBtn").onclick=()=>helpOverlay.classList.add("show");
+document.getElementById("helpClose").onclick=()=>helpOverlay.classList.remove("show");
+helpOverlay.addEventListener("click",e=>{ if(e.target===helpOverlay) helpOverlay.classList.remove("show"); });
 document.getElementById("soundBtn").onclick=function(){
   soundOn=!soundOn;
   this.textContent=soundOn?"🔊 FX: On":"🔇 FX: Off";
